@@ -1,0 +1,36 @@
+@Library('apigw-canary@main') _
+
+pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    parameters {
+        string(name: 'REST_API_ID', description: 'REST API ID')
+        string(name: 'API_NAME', defaultValue: 'apigw-canary-example', description: 'API name, used as the CloudWatch dimension')
+        string(name: 'STAGE_NAME', defaultValue: 'prod')
+        string(name: 'NEW_VERSION', defaultValue: 'v2', description: 'Value of the version stage variable on the canary')
+    }
+
+    stages {
+        stage('Release') {
+            steps {
+                script {
+                    apigwCanary(
+                        restApiId: params.REST_API_ID,
+                        apiName: params.API_NAME,
+                        stageName: params.STAGE_NAME,
+                        tfDir: 'examples/basic',
+                        steps: [10, 25, 50],
+                        bakeMinutes: 10,
+                        max5xxRate: 0.01,
+                        stageVariableOverrides: [version: params.NEW_VERSION],
+                    )
+                }
+            }
+        }
+    }
+}

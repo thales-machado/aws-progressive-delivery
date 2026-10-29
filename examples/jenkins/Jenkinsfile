@@ -1,0 +1,45 @@
+@Library('aws-progressive-delivery') _
+
+pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    parameters {
+        choice(name: 'ACTION', choices: ['START', 'CONTINUE', 'PROMOTE', 'ROLLBACK', 'STATUS', 'CLEANUP'],
+            description: 'START opens a canary, CONTINUE resumes one left on HOLD')
+        string(name: 'API_NAMES', defaultValue: 'pd-example-orders', description: 'Comma separated REST API names, optionally name@stage')
+        choice(name: 'EXECUTION_MODE', choices: ['sequential', 'parallel', 'single'], description: 'How several APIs are released')
+        string(name: 'CANARY_STEPS', defaultValue: '10,25,50', description: 'Canary traffic percentages, ascending')
+        string(name: 'STAGE_NAME', defaultValue: 'prod', description: 'Default stage for names without @stage')
+    }
+
+    environment {
+        AWS_REGION = 'us-east-1'
+        STATE_BUCKET = 'replace-with-your-state-bucket'
+    }
+
+    stages {
+        stage('Release') {
+            steps {
+                script {
+                    progressiveDelivery(
+                        action: params.ACTION,
+                        apis: params.API_NAMES,
+                        mode: params.EXECUTION_MODE,
+                        steps: params.CANARY_STEPS,
+                        stage: params.STAGE_NAME,
+                        region: env.AWS_REGION,
+                        bakeMinutes: 10,
+                        gate: [minRequests: 100, max5xxRate: 0.01, maxP99LatencyMs: 1500],
+                        canary: [stageVariableOverrides: [version: 'v2']],
+                        monitor: [backend: [type: 's3', config: [bucket: env.STATE_BUCKET, region: env.AWS_REGION, use_lockfile: 'true']]],
+                    )
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,41 @@
+jenkins:
+  systemMessage: "aws-progressive-delivery local sandbox"
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  globalLibraries:
+    libraries:
+      - name: "aws-progressive-delivery"
+        defaultVersion: "main"
+        implicit: false
+        retriever:
+          modernSCM:
+            scm:
+              git:
+                remote: "file:///opt/repo"
+
+jobs:
+  - script: >
+      pipelineJob('canary-release') {
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('file:///opt/repo') }
+                branches('*/main')
+              }
+            }
+            scriptPath('examples/jenkins/Jenkinsfile')
+            lightweight(true)
+          }
+        }
+      }

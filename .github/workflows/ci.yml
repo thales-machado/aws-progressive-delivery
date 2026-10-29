@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir:
+          - modules/apigw-canary
+          - resources/terraform/apigw-monitor
+          - examples/apigw-basic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - run: terraform fmt -check -recursive
+      - run: terraform -chdir=${{ matrix.dir }} init -backend=false -input=false
+      - run: terraform -chdir=${{ matrix.dir }} validate
+
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+      - run: tflint --init
+      - run: tflint --recursive
+
+  groovy:
+    runs-on: ubuntu-latest
+    container: groovy:3.0-jdk17
+    steps:
+      - uses: actions/checkout@v4
+      - run: test/run.sh
+
+  groovy-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npx --yes npm-groovy-lint --path . --files "**/*.groovy" --failon error
