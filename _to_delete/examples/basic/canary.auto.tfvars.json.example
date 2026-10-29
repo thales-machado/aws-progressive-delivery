@@ -1,8 +1,0 @@
-{
-  "stable_deployment_id": "abc123",
-  "canary": {
-    "deployment_id": "def456",
-    "percent_traffic": 10,
-    "stage_variable_overrides": { "version": "v2" }
-  }
-}
