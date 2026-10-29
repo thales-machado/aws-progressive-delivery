@@ -12,6 +12,10 @@ you want one, and rolls back on its own when a gate fails. Promotion is the last
 
 ## How a release runs
 
+![Canary release flow: approval, bake, health gate, rollback, hold and promote](docs/media/canary-release-flow.gif)
+
+The animation uses simulated values. The same flow as a diagram:
+
 ```mermaid
 flowchart TD
     A([START]) --> B[Validate targets and read stage state from AWS]
